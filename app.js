@@ -6,6 +6,7 @@ const tensionText = document.querySelector("#tensionText");
 const keySelect = document.querySelector("#keySelect");
 const resetButton = document.querySelector("#resetButton");
 const bluesScaleButton = document.querySelector("#bluesScaleButton");
+const audioEnableButton = document.querySelector("#audioEnableButton");
 const patternSelect = document.querySelector("#patternSelect");
 const playPatternButton = document.querySelector("#playPatternButton");
 
@@ -256,7 +257,7 @@ let selectedId = null;
 let patternTimer = null;
 let bluesScaleActive = false;
 let audioContext = null;
-let audioUnlockPromise = null;
+let audioEnabled = false;
 
 init();
 
@@ -496,7 +497,10 @@ async function playKeyboardKey(key) {
   key.dataset.lastStartedAt = String(startedAt);
 
   const midi = Number(key.dataset.midi);
-  await playMidiNote(midi);
+  const didPlay = await playMidiNote(midi);
+  if (!didPlay) {
+    return;
+  }
   key.classList.add("playing");
   window.setTimeout(() => key.classList.remove("playing"), 160);
 }
@@ -507,9 +511,10 @@ async function playMidiNote(midi) {
     return false;
   }
 
-  const isReady = await unlockAudioContext(context);
+  const isReady = await unlockAudio();
   if (!isReady) {
-    selectionText.textContent = "音声を有効にするため、鍵盤をもう一度タップしてください。";
+    updateAudioButton(false);
+    selectionText.textContent = "先に「音ON」をタップしてから、鍵盤を押してください。";
     return false;
   }
 
@@ -547,33 +552,56 @@ function getAudioContext() {
   }
 
   if (!audioContext) {
-    audioContext = new AudioContextClass({ latencyHint: "interactive" });
+    try {
+      audioContext = new AudioContextClass({ latencyHint: "interactive" });
+    } catch (error) {
+      audioContext = new AudioContextClass();
+    }
   }
   return audioContext;
 }
 
-async function unlockAudioContext(context) {
-  if (context.state === "running") {
-    return true;
+async function unlockAudio() {
+  const context = getAudioContext();
+  if (!context) {
+    updateAudioButton(false);
+    return false;
   }
 
-  if (!audioUnlockPromise) {
-    audioUnlockPromise = (async () => {
-      try {
-        await context.resume();
-        const source = context.createBufferSource();
-        source.buffer = context.createBuffer(1, 1, 22050);
-        source.connect(context.destination);
-        source.start(0);
-        return context.state === "running";
-      } catch (error) {
-        audioUnlockPromise = null;
-        return false;
-      }
-    })();
+  try {
+    if (context.state !== "running") {
+      await context.resume();
+    }
+    playUnlockTone(context);
+    audioEnabled = context.state === "running";
+    updateAudioButton(audioEnabled);
+    return audioEnabled;
+  } catch (error) {
+    audioEnabled = false;
+    updateAudioButton(false);
+    selectionText.textContent = "音声を有効にできませんでした。もう一度「音ON」をタップしてください。";
+    return false;
   }
+}
 
-  return audioUnlockPromise;
+function playUnlockTone(context) {
+  const now = context.currentTime;
+  const gain = context.createGain();
+  const oscillator = context.createOscillator();
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(880, now);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(now);
+  oscillator.stop(now + 0.18);
+}
+
+function updateAudioButton(isEnabled) {
+  audioEnableButton.setAttribute("aria-pressed", String(isEnabled));
+  audioEnableButton.textContent = isEnabled ? "音ON済" : "音ON";
 }
 
 function drawGraph() {
@@ -694,7 +722,17 @@ function bindControls() {
   keySelect.addEventListener("change", () => loadKey(keySelect.value));
   resetButton.addEventListener("click", clearSelection);
   bluesScaleButton.addEventListener("click", toggleBluesScale);
+  audioEnableButton.addEventListener("click", requestAudioEnable);
+  audioEnableButton.addEventListener("touchend", requestAudioEnable, { passive: false });
   playPatternButton.addEventListener("click", playSelectedPattern);
+}
+
+async function requestAudioEnable(event) {
+  event?.preventDefault();
+  const isReady = await unlockAudio();
+  if (isReady) {
+    selectionText.textContent = "音が有効になりました。鍵盤をタップすると音が出ます。";
+  }
 }
 
 function selectChord(chordId) {
