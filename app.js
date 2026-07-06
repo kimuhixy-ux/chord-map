@@ -240,6 +240,7 @@ let simulation;
 let selectedId = null;
 let patternTimer = null;
 let bluesScaleActive = false;
+let audioContext = null;
 
 init();
 
@@ -410,39 +411,97 @@ function spellTensionNote(pitch, spelling, pitchToName) {
 
 function buildKeyboard() {
   const whiteNotes = ["C", "D", "E", "F", "G", "A", "B", "C", "D", "E", "F", "G", "A", "B"];
+  const whiteMidi = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83];
   const blackNotes = [
-    { note: "C#/Db", pitch: 1, left: 7.15 },
-    { note: "D#/Eb", pitch: 3, left: 14.3 },
-    { note: "F#/Gb", pitch: 6, left: 28.6 },
-    { note: "G#/Ab", pitch: 8, left: 35.75 },
-    { note: "A#/Bb", pitch: 10, left: 42.9 },
-    { note: "C#/Db", pitch: 1, left: 57.2 },
-    { note: "D#/Eb", pitch: 3, left: 64.35 },
-    { note: "F#/Gb", pitch: 6, left: 78.65 },
-    { note: "G#/Ab", pitch: 8, left: 85.8 },
-    { note: "A#/Bb", pitch: 10, left: 92.95 }
+    { note: "C#/Db", pitch: 1, midi: 61, left: 7.15 },
+    { note: "D#/Eb", pitch: 3, midi: 63, left: 14.3 },
+    { note: "F#/Gb", pitch: 6, midi: 66, left: 28.6 },
+    { note: "G#/Ab", pitch: 8, midi: 68, left: 35.75 },
+    { note: "A#/Bb", pitch: 10, midi: 70, left: 42.9 },
+    { note: "C#/Db", pitch: 1, midi: 73, left: 57.2 },
+    { note: "D#/Eb", pitch: 3, midi: 75, left: 64.35 },
+    { note: "F#/Gb", pitch: 6, midi: 78, left: 78.65 },
+    { note: "G#/Ab", pitch: 8, midi: 80, left: 85.8 },
+    { note: "A#/Bb", pitch: 10, midi: 82, left: 92.95 }
   ];
 
   keyboardEl.innerHTML = "";
   whiteNotes.forEach((note, index) => {
-    keyboardEl.append(createKey(note, noteToPitch(note), "white", index + 1));
+    keyboardEl.append(createKey(note, noteToPitch(note), whiteMidi[index], "white", index + 1));
   });
-  blackNotes.forEach(({ note, pitch, left }) => {
-    const key = createKey(note, pitch, "black");
+  blackNotes.forEach(({ note, pitch, midi, left }) => {
+    const key = createKey(note, pitch, midi, "black");
     key.style.left = `${left}%`;
     keyboardEl.append(key);
   });
 }
 
-function createKey(label, pitch, color, column) {
+function createKey(label, pitch, midi, color, column) {
   const key = document.createElement("div");
   key.className = `key ${color}`;
   key.dataset.pitch = String(pitch);
+  key.dataset.midi = String(midi);
   key.textContent = label;
+  key.addEventListener("pointerdown", () => playKeyboardKey(key));
   if (column) {
     key.style.gridColumn = String(column);
   }
   return key;
+}
+
+function playKeyboardKey(key) {
+  const midi = Number(key.dataset.midi);
+  playMidiNote(midi);
+  key.classList.add("playing");
+  window.setTimeout(() => key.classList.remove("playing"), 160);
+}
+
+function playMidiNote(midi) {
+  const context = getAudioContext();
+  if (!context) {
+    return;
+  }
+
+  if (context.state === "suspended") {
+    context.resume();
+  }
+
+  const now = context.currentTime;
+  const frequency = 440 * 2 ** ((midi - 69) / 12);
+  const gain = context.createGain();
+  const fundamental = context.createOscillator();
+  const overtone = context.createOscillator();
+
+  fundamental.type = "triangle";
+  fundamental.frequency.setValueAtTime(frequency, now);
+  overtone.type = "sine";
+  overtone.frequency.setValueAtTime(frequency * 2, now);
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.28, now + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+
+  fundamental.connect(gain);
+  overtone.connect(gain);
+  gain.connect(context.destination);
+
+  fundamental.start(now);
+  overtone.start(now);
+  fundamental.stop(now + 0.8);
+  overtone.stop(now + 0.8);
+}
+
+function getAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    selectionText.textContent = "このブラウザでは音声再生に対応していません。";
+    return null;
+  }
+
+  if (!audioContext) {
+    audioContext = new AudioContextClass();
+  }
+  return audioContext;
 }
 
 function drawGraph() {
