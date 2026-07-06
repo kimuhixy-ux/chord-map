@@ -178,6 +178,7 @@ p {
   position: relative;
   border: 1px solid #191919;
   display: flex;
+  flex-direction: column;
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 10px;
@@ -186,6 +187,26 @@ p {
   user-select: none;
   touch-action: manipulation;
   transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.key-note,
+.key-degree {
+  width: 100%;
+  text-align: center;
+  line-height: 1.15;
+  pointer-events: none;
+}
+
+.key-note {
+  margin-top: auto;
+}
+
+.key-degree {
+  min-height: 18px;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #174f86;
 }
 
 .key.white {
@@ -206,6 +227,11 @@ p {
   color: #fff;
   z-index: 2;
   padding-bottom: 8px;
+}
+
+.key.black .key-degree {
+  color: #dff3ff;
+  font-size: 11px;
 }
 
 .key.active {
@@ -297,6 +323,11 @@ p {
   .key.black {
     height: 76px;
     font-size: 10px;
+  }
+
+  .key-degree {
+    font-size: 11px;
+    min-height: 15px;
   }
 
   .chord-details {

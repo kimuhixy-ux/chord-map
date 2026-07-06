@@ -232,6 +232,21 @@ const TENSION_PROFILES = {
   ]
 };
 
+const INTERVAL_LABELS = {
+  0: "R",
+  1: "b2",
+  2: "2",
+  3: "b3",
+  4: "3",
+  5: "4",
+  6: "b5",
+  7: "5",
+  8: "#5",
+  9: "6",
+  10: "b7",
+  11: "7"
+};
+
 let data;
 let node;
 let edge;
@@ -310,6 +325,7 @@ function createKeyData(selection) {
   const nodes = config.nodes.map((definition) => {
     const root = transposeNote(scale[definition.degree], definition.accidental || 0, pitchToName);
     const tones = definition.intervals.map((interval) => transposeNote(root, interval, pitchToName));
+    const toneDegrees = definition.intervals.map(intervalToDegreeLabel);
     const tensions = createTensions(root, definition, pitchToName);
     return {
       id: definition.id,
@@ -318,6 +334,7 @@ function createKeyData(selection) {
       function: definition.function,
       color: COLORS[definition.function],
       tones,
+      toneDegrees,
       tensions
     };
   });
@@ -366,6 +383,10 @@ function transposeNote(note, semitones, pitchToName) {
 
 function noteToPitch(note) {
   return PITCH_CLASS[note];
+}
+
+function intervalToDegreeLabel(interval) {
+  return INTERVAL_LABELS[((interval % 12) + 12) % 12];
 }
 
 function createTensions(root, definition, pitchToName) {
@@ -441,7 +462,12 @@ function createKey(label, pitch, midi, color, column) {
   key.className = `key ${color}`;
   key.dataset.pitch = String(pitch);
   key.dataset.midi = String(midi);
-  key.textContent = label;
+  const noteLabel = document.createElement("span");
+  noteLabel.className = "key-note";
+  noteLabel.textContent = label;
+  const degreeLabel = document.createElement("span");
+  degreeLabel.className = "key-degree";
+  key.append(noteLabel, degreeLabel);
   key.addEventListener("pointerdown", () => playKeyboardKey(key));
   if (column) {
     key.style.gridColumn = String(column);
@@ -645,7 +671,7 @@ function selectChord(chordId) {
     .classed("available", (d) => d.source.id === chordId);
 
   edgeLabel.classed("dimmed", (d) => d.source.id !== chordId);
-  highlightKeys(chord.tones, chord.tensions);
+  highlightKeys(chord.tones, chord.tensions, chord.toneDegrees);
   updateChordDetails(chord);
 
   const nextNames = [...availableIds].map((id) => nodeById.get(id).name).join(" / ") || "なし";
@@ -666,19 +692,36 @@ function clearSelection() {
   selectionText.textContent = `${data.key} を表示中です。コードを選ぶと、進行先と鍵盤が光ります。`;
 }
 
-function highlightKeys(tones, tensions = []) {
+function highlightKeys(tones, tensions = [], toneDegrees = []) {
   const pitches = new Set(tones.map(noteToPitch).map(String));
   const tensionPitches = new Set(tensions.map((tension) => String(tension.pitch)));
+  const degreeByPitch = createDegreeMap(tones, tensions, toneDegrees);
   keyboardEl.querySelectorAll(".key").forEach((key) => {
     key.classList.remove("scale-active");
     key.classList.toggle("tension-active", tensionPitches.has(key.dataset.pitch) && !pitches.has(key.dataset.pitch));
     key.classList.toggle("active", pitches.has(key.dataset.pitch));
+    key.querySelector(".key-degree").textContent = degreeByPitch.get(key.dataset.pitch) || "";
   });
+}
+
+function createDegreeMap(tones, tensions, toneDegrees) {
+  const degreeByPitch = new Map();
+  tones.forEach((tone, index) => {
+    degreeByPitch.set(String(noteToPitch(tone)), toneDegrees[index]);
+  });
+  tensions.forEach((tension) => {
+    const pitch = String(tension.pitch);
+    if (!degreeByPitch.has(pitch)) {
+      degreeByPitch.set(pitch, tension.label);
+    }
+  });
+  return degreeByPitch;
 }
 
 function clearKeyboardHighlights() {
   keyboardEl.querySelectorAll(".key").forEach((key) => {
     key.classList.remove("active", "scale-active", "tension-active");
+    key.querySelector(".key-degree").textContent = "";
   });
 }
 
@@ -722,6 +765,7 @@ function showBluesScale() {
   keyboardEl.querySelectorAll(".key").forEach((key) => {
     key.classList.remove("active", "tension-active");
     key.classList.toggle("scale-active", pitches.has(key.dataset.pitch));
+    key.querySelector(".key-degree").textContent = "";
   });
   chordToneText.textContent = notes.map((note) => note.name).join(" / ");
   tensionText.textContent = "ブルーススケール表示中";
