@@ -1,0 +1,60 @@
+{
+  "key": "C major",
+  "notes": [
+    "Initial map for C major jazz/pop harmony. Edges are intentionally editable so the theory map can grow over time."
+  ],
+  "nodes": [
+    { "id": "C", "name": "C", "function": "tonic", "color": "#e8505b", "tones": ["C", "E", "G"] },
+    { "id": "Dm", "name": "Dm", "function": "subdominant", "color": "#2f9e73", "tones": ["D", "F", "A"] },
+    { "id": "Em", "name": "Em", "function": "tonic", "color": "#e8505b", "tones": ["E", "G", "B"] },
+    { "id": "F", "name": "F", "function": "subdominant", "color": "#2f9e73", "tones": ["F", "A", "C"] },
+    { "id": "G", "name": "G", "function": "dominant", "color": "#f08c2e", "tones": ["G", "B", "D"] },
+    { "id": "Am", "name": "Am", "function": "tonic", "color": "#e8505b", "tones": ["A", "C", "E"] },
+    { "id": "Bdim", "name": "Bdim", "function": "diminished", "color": "#8f5bd7", "tones": ["B", "D", "F"] },
+    { "id": "C7", "name": "C7", "function": "dominant7", "color": "#f08c2e", "tones": ["C", "E", "G", "Bb"] },
+    { "id": "D7", "name": "D7", "function": "dominant7", "color": "#f08c2e", "tones": ["D", "F#", "A", "C"] },
+    { "id": "E7", "name": "E7", "function": "dominant7", "color": "#f08c2e", "tones": ["E", "G#", "B", "D"] },
+    { "id": "F7", "name": "F7", "function": "dominant7", "color": "#f08c2e", "tones": ["F", "A", "C", "Eb"] },
+    { "id": "G7", "name": "G7", "function": "dominant7", "color": "#f08c2e", "tones": ["G", "B", "D", "F"] },
+    { "id": "A7", "name": "A7", "function": "dominant7", "color": "#f08c2e", "tones": ["A", "C#", "E", "G"] },
+    { "id": "B7", "name": "B7", "function": "dominant7", "color": "#f08c2e", "tones": ["B", "D#", "F#", "A"] },
+    { "id": "Adim", "name": "Adim", "function": "diminished", "color": "#8f5bd7", "tones": ["A", "C", "Eb"] },
+    { "id": "Ddim", "name": "Ddim", "function": "diminished", "color": "#8f5bd7", "tones": ["D", "F", "Ab"] },
+    { "id": "E#dim", "name": "E#dim", "function": "diminished", "color": "#8f5bd7", "tones": ["E#", "G#", "B"] },
+    { "id": "A#dim", "name": "A#dim", "function": "diminished", "color": "#8f5bd7", "tones": ["A#", "C#", "E"] }
+  ],
+  "edges": [
+    { "from": "C", "to": "Dm", "label": "I-ii" },
+    { "from": "C", "to": "F", "label": "I-IV" },
+    { "from": "C", "to": "Am", "label": "I-vi" },
+    { "from": "Dm", "to": "G", "label": "ii-V" },
+    { "from": "Dm", "to": "G7", "label": "ii-V7" },
+    { "from": "Em", "to": "Am", "label": "iii-vi" },
+    { "from": "Em", "to": "F", "label": "iii-IV" },
+    { "from": "F", "to": "G", "label": "IV-V" },
+    { "from": "F", "to": "C", "label": "IV-I" },
+    { "from": "G", "to": "C", "label": "V-I" },
+    { "from": "G7", "to": "C", "label": "V7-I" },
+    { "from": "Am", "to": "Dm", "label": "vi-ii" },
+    { "from": "Am", "to": "F", "label": "vi-IV" },
+    { "from": "Bdim", "to": "C", "label": "vii-I" },
+    { "from": "C7", "to": "F", "label": "V7/IV" },
+    { "from": "D7", "to": "G", "label": "V7/V" },
+    { "from": "E7", "to": "Am", "label": "V7/vi" },
+    { "from": "F7", "to": "Bdim", "label": "chromatic" },
+    { "from": "A7", "to": "Dm", "label": "V7/ii" },
+    { "from": "B7", "to": "Em", "label": "V7/iii" },
+    { "from": "Adim", "to": "Am", "label": "passing" },
+    { "from": "Adim", "to": "Dm", "label": "diminished resolution" },
+    { "from": "Ddim", "to": "Dm", "label": "passing" },
+    { "from": "Ddim", "to": "C", "label": "diminished resolution" },
+    { "from": "E#dim", "to": "F", "label": "leading diminished" },
+    { "from": "A#dim", "to": "Bdim", "label": "chromatic" },
+    { "from": "A#dim", "to": "Am", "label": "chromatic neighbor" }
+  ],
+  "patterns": [
+    { "id": "ii-v-i", "name": "ii-V-I", "steps": ["Dm", "G7", "C"] },
+    { "id": "turnaround", "name": "I-vi-ii-V", "steps": ["C", "Am", "Dm", "G7"] },
+    { "id": "secondary-dominants", "name": "Secondary dominants", "steps": ["B7", "Em", "E7", "Am", "A7", "Dm", "D7", "G", "G7", "C"] }
+  ]
+}
