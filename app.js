@@ -256,6 +256,7 @@ let selectedId = null;
 let patternTimer = null;
 let bluesScaleActive = false;
 let audioContext = null;
+let audioUnlockPromise = null;
 
 init();
 
@@ -468,31 +469,51 @@ function createKey(label, pitch, midi, color, column) {
   const degreeLabel = document.createElement("span");
   degreeLabel.className = "key-degree";
   key.append(noteLabel, degreeLabel);
-  key.addEventListener("pointerdown", () => playKeyboardKey(key));
+  const playFromInput = (event) => {
+    event.preventDefault();
+    playKeyboardKey(key);
+  };
+  const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  if (isTouchDevice) {
+    key.addEventListener("touchend", playFromInput, { passive: false });
+  } else if (window.PointerEvent) {
+    key.addEventListener("pointerdown", playFromInput);
+  } else {
+    key.addEventListener("mousedown", playFromInput);
+  }
   if (column) {
     key.style.gridColumn = String(column);
   }
   return key;
 }
 
-function playKeyboardKey(key) {
+async function playKeyboardKey(key) {
+  const lastStartedAt = Number(key.dataset.lastStartedAt || 0);
+  const startedAt = Date.now();
+  if (startedAt - lastStartedAt < 120) {
+    return;
+  }
+  key.dataset.lastStartedAt = String(startedAt);
+
   const midi = Number(key.dataset.midi);
-  playMidiNote(midi);
+  await playMidiNote(midi);
   key.classList.add("playing");
   window.setTimeout(() => key.classList.remove("playing"), 160);
 }
 
-function playMidiNote(midi) {
+async function playMidiNote(midi) {
   const context = getAudioContext();
   if (!context) {
-    return;
+    return false;
   }
 
-  if (context.state === "suspended") {
-    context.resume();
+  const isReady = await unlockAudioContext(context);
+  if (!isReady) {
+    selectionText.textContent = "音声を有効にするため、鍵盤をもう一度タップしてください。";
+    return false;
   }
 
-  const now = context.currentTime;
+  const now = context.currentTime + 0.01;
   const frequency = 440 * 2 ** ((midi - 69) / 12);
   const gain = context.createGain();
   const fundamental = context.createOscillator();
@@ -515,6 +536,7 @@ function playMidiNote(midi) {
   overtone.start(now);
   fundamental.stop(now + 0.8);
   overtone.stop(now + 0.8);
+  return true;
 }
 
 function getAudioContext() {
@@ -525,9 +547,33 @@ function getAudioContext() {
   }
 
   if (!audioContext) {
-    audioContext = new AudioContextClass();
+    audioContext = new AudioContextClass({ latencyHint: "interactive" });
   }
   return audioContext;
+}
+
+async function unlockAudioContext(context) {
+  if (context.state === "running") {
+    return true;
+  }
+
+  if (!audioUnlockPromise) {
+    audioUnlockPromise = (async () => {
+      try {
+        await context.resume();
+        const source = context.createBufferSource();
+        source.buffer = context.createBuffer(1, 1, 22050);
+        source.connect(context.destination);
+        source.start(0);
+        return context.state === "running";
+      } catch (error) {
+        audioUnlockPromise = null;
+        return false;
+      }
+    })();
+  }
+
+  return audioUnlockPromise;
 }
 
 function drawGraph() {

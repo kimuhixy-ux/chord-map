@@ -1,9 +1,9 @@
-const CACHE_NAME = "chord-map-v10";
+const CACHE_NAME = "chord-map-v11";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=10",
-  "./app.js?v=10",
+  "./styles.css?v=11",
+  "./app.js?v=11",
   "./data/chord-map-c.json",
   "./vendor/d3.v7.min.js",
   "./manifest.json",
